@@ -1,27 +1,49 @@
 <!DOCTYPE html>
+<!--
+    Biboo "ROCK IN!" Karaoke Player
+    Copyright (C) 2026 Sugoi-ZY
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>【KOSEKI BIJOU】ROCK IN! - Karaoke</title>
+    <title>ROCK IN! - Karaoke Player</title>
     <style>
         :root {
             --text-dim: rgba(255, 255, 255, 0.4);
             --text-highlight: #ffffff;
+            --bg-blur: rgba(255, 255, 255, 0.1);
         }
 
         body {
             margin: 0;
             background: linear-gradient(135deg, #121212 0%, #1e1e24 100%);
             color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
+        /* --- 頂部控制列 --- */
         .header {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
             padding: 15px 30px;
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(20px);
@@ -29,401 +51,638 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            z-index: 10;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .status {
-            color: #aaa;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
+        .header-title { margin: 0; font-size: 1.2rem; }
+        .status { color: #aaa; font-size: 0.85rem; font-weight: 500; }
 
-        .main-content {
+        .control-panel {
             display: flex;
-            flex: 1;
-            overflow: hidden;
-            flex-direction: row; 
+            gap: 15px;
+            align-items: center;
         }
+
+        .toggle-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        @media (hover: hover) {
+			.toggle-btn:hover { color: #fff; }
+		}
+		
+        .toggle-btn.active { background: rgba(255, 255, 255, 0.15); color: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+        /* --- 主要內容區 --- */
+        .main-content { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
 
         .media-section {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            min-width: 0; 
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 40px; min-width: 0;
         }
 
-        .youtube-container {
-            width: 100%;
-            max-height: 80vh; 
-            aspect-ratio: 16 / 9;
-            border-radius: 16px;
-            overflow: hidden;
+        .media-wrapper {
+            width: 100%; max-height: 80vh; aspect-ratio: 16 / 9;
+            border-radius: 16px; overflow: hidden;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            background: #000;
+            background: #000; position: relative;
         }
 
-        .youtube-container iframe {
-            width: 100% !important;
-            height: 100% !important;
-            border: none;
-            display: block;
+        /* YouTube 雙層疊加設定 */
+        .yt-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            transition: opacity 0.4s ease;
         }
+        .yt-layer iframe { width: 100% !important; height: 100% !important; border: none; }
 
-        .lyrics-section {
-            flex: 1;
-            overflow-y: auto;
-            padding: 40vh 40px; 
-            scroll-behavior: smooth;
-            scrollbar-width: none; 
-        }
-        .lyrics-section::-webkit-scrollbar { display: none; }
-
-        .line {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 24px;
-            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            transform-origin: left center;
-            opacity: 0.5;
-            transform: scale(0.9);
-            cursor: pointer;
-        }
-
-        .line:hover { opacity: 0.7; }
-        .line.active {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .word {
-            display: inline-block;
-            white-space: pre-wrap;
-            background: linear-gradient(
-                to right, 
-                var(--text-highlight) 0%, 
-                var(--text-highlight) var(--progress, 0%), 
-                var(--text-dim) var(--progress, 0%), 
-                var(--text-dim) 100%
-            );
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* --- 新增：左下角 Info 按鈕與彈出視窗樣式 --- */
-        .info-btn {
-            position: fixed;
-            bottom: 25px;
-            left: 25px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0.4;
-            transition: all 0.3s ease;
-            z-index: 50;
-            color: #fff;
-        }
-
-        .info-btn:hover {
-            opacity: 1;
-            transform: scale(1.1);
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .info-modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .info-modal-overlay.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .info-modal-content {
-            background: rgba(30, 30, 35, 0.85);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 30px 40px;
-            border-radius: 20px;
-            max-width: 400px;
-            width: 80%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            transform: translateY(20px) scale(0.95);
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-        }
-
-        .info-modal-overlay.show .info-modal-content {
-            transform: translateY(0) scale(1);
-        }
-
-        .info-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 25px;
-            font-size: 1.5rem;
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .info-modal-close:hover {
-            color: #fff;
-        }
-
-        .info-text p {
-            margin: 0 0 10px 0;
-            line-height: 1.6;
-            color: #ccc;
-            font-size: 0.95rem;
+		/* Cover 模式設定 */
+        .cover-wrapper {
+            width: 100%; height: 100%; position: relative;
+            display: none; align-items: center; justify-content: center;
+            background: transparent; 
+            box-shadow: none; 
+            overflow: visible; 
         }
         
-        .info-text h4 {
-            margin: 0 0 15px 0;
-            color: #fff;
-            font-size: 1.2rem;
+        .cover-wrapper img {
+            max-width: 100%; max-height: 100%; 
+            width: auto; height: auto; 
+            object-fit: contain; 
+            opacity: 0.9; transition: transform 0.5s ease;
+            border-radius: 16px; 
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); 
+            cursor: pointer; 
         }
+        
+        /* 關鍵修正：將 hover 綁定在 img 本身，並加入媒體查詢 */
+		@media (hover: hover) {
+			.cover-wrapper img:hover { transform: scale(1.02); }
+		}
+        
+        .play-overlay {
+            position: absolute; font-size: 4rem; color: rgba(255,255,255,0.7);
+            text-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: opacity 0.3s;
+            pointer-events: none; 
+        }
+
+        /* --- 歌詞區塊 --- */
+        .lyrics-section {
+            flex: 1; overflow-y: auto; padding: 40vh 40px; 
+            scroll-behavior: smooth; scrollbar-width: none; 
+        }
+        .lyrics-section::-webkit-scrollbar { display: none; }
+        
+        .line {
+            font-size: 2.5rem; font-weight: 700; margin-bottom: 24px;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-origin: left center; opacity: 0.5; transform: scale(0.9); cursor: pointer;
+        }
+        @media (hover: hover) {
+			.line:hover { opacity: 0.7; }
+		}
+        .line.active { opacity: 1; transform: scale(1); }
+
+        .word {
+            display: inline-block; white-space: pre-wrap;
+            background: linear-gradient(to right, var(--text-highlight) 0%, var(--text-highlight) var(--progress, 0%), var(--text-dim) var(--progress, 0%), var(--text-dim) 100%);
+            background-clip: text; -webkit-background-clip: text; color: transparent;
+        }
+
+        /* Info Modal (沿用) */
+        .info-btn {
+            position: fixed; bottom: 25px; right: 25px; width: 40px; height: 40px;
+            border-radius: 50%; background: var(--bg-blur); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; opacity: 0.4; transition: all 0.3s; z-index: 50; color: #fff;
+        }
+        @media (hover: hover) {
+			.info-btn:hover { opacity: 1; transform: scale(1.1); background: rgba(255,255,255,0.2); }
+		}
+		.info-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .info-modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .info-modal-content { background: rgba(30,30,35,0.85); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1); padding: 30px 40px; border-radius: 20px; max-width: 400px; width: 80%; transform: translateY(20px) scale(0.95); transition: all 0.3s; position: relative; }
+        .info-modal-overlay.show .info-modal-content { transform: translateY(0) scale(1); }
+        .info-modal-close { position: absolute; top: 20px; right: 25px; font-size: 1.5rem; color: rgba(255,255,255,0.5); cursor: pointer; }
+        @media (hover: hover) {
+			.info-modal-close:hover { color: #fff; }
+		}
+        .info-text p { margin: 0 0 10px 0; line-height: 1.6; color: #ccc; font-size: 0.9rem; }
+        .info-text h4 { margin: 0 0 15px 0; color: #fff; font-size: 1.2rem; }
 
         @media (max-width: 900px) {
             .main-content { flex-direction: column; }
+            .header { justify-content: center; }
             .media-section { flex: none; padding: 20px 20px 0 20px; }
-            .youtube-container { max-height: none; }
+            .media-wrapper { max-height: none; }
             .lyrics-section { padding: 30px 20px 50vh 20px; }
-            .line { font-size: 1.8rem; margin-bottom: 16px; }
-            .info-btn { bottom: 15px; left: 15px; } /* 手機版按鈕稍微靠邊 */
+            .line { font-size: 1.8rem; }
         }
+		
+		.agpl-notice {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.2); /* 加一條虛線分隔線 */
+            text-align: center;
+        }
+        
+        .agpl-notice p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .agpl-notice a {
+            color: #8bb9fe;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        @media (hover: hover) {
+			.agpl-notice a:hover {
+				color: #ffffff;
+				text-decoration: underline;
+			}
+		}
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h3 style="margin:0; font-size:1.2rem;">【KOSEKI BIJOU】ROCK IN! - Karaoke</h3>
-        <div id="status" class="status">正在載入資源...</div>
+        <div>
+            <h3 class="header-title">ROCK IN! - Karaoke</h3>
+            <div id="status" class="status">載入中...</div>
+        </div>
+        
+        <!-- 整合式雙重控制列 -->
+        <div class="control-panel">
+            <div class="toggle-group">
+                <button id="btnYt" class="toggle-btn active" onclick="setSource('youtube')">YouTube</button>
+                <button id="btnFlac" class="toggle-btn" onclick="setSource('flac')">FLAC</button>
+            </div>
+            <div class="toggle-group">
+                <button id="btnVocal" class="toggle-btn active" onclick="setVocal('vocal')">Vocal 原唱</button>
+                <button id="btnInst" class="toggle-btn" onclick="setVocal('inst')">Instrumental 伴奏</button>
+            </div>
+        </div>
     </div>
 
     <div class="main-content">
         <div class="media-section">
-            <div class="youtube-container">
-                <div id="youtubePlayer"></div>
+            <div class="media-wrapper" id="youtubeWrapper">
+                <!-- 伴奏版在底層 (透明) -->
+                <div id="ytInstContainer" class="yt-layer" style="opacity: 0; pointer-events: none;"><div id="ytInst"></div></div>
+                <!-- 原唱版在頂層 -->
+                <div id="ytVocalContainer" class="yt-layer" style="opacity: 1; pointer-events: auto;"><div id="ytVocal"></div></div>
+            </div>
+            
+            <div class="media-wrapper cover-wrapper" id="flacWrapper">
+                <img src="cover.jpg" alt="ROCK IN Cover" onclick="toggleFlacPlay()">
+                <div class="play-overlay" id="flacPlayBtn">▶</div>
             </div>
         </div>
+        
         <div class="lyrics-section" id="lyricsContainer"></div>
     </div>
 
-    <div class="info-btn" id="infoBtn" title="資訊">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-        </svg>
-    </div>
-
-    <div class="info-modal-overlay" id="infoModal">
+    <!-- Info Modal -->
+    <div class="info-btn" onclick="document.getElementById('infoModal').classList.add('show')">ℹ</div>
+    <div class="info-modal-overlay" id="infoModal" onclick="if(event.target.id==='infoModal')this.classList.remove('show')">
         <div class="info-modal-content">
-            <div class="info-modal-close" id="closeModalBtn">&times;</div>
+            <div class="info-modal-close" onclick="document.getElementById('infoModal').classList.remove('show')">&times;</div>
             <div class="info-text">
                 <h4>歌曲資訊</h4>
-                <p><strong>歌曲：</strong>ROCK IN!</p>
-                <p><strong>歌手：</strong>Koseki Bijou (hololive)</p>
+                <p>
+					<strong>歌曲：</strong>ROCK IN!
+					<br>
+					<strong>歌手：</strong>Koseki Bijou (hololive)
+				</p>
 				<hr>
-                <p><strong>備註：</strong></p>
+                <p><h4>備註：</h4></p>
 				<p>⚠️本網頁未經 Koseki Bijou 或 hololive 批准或與之關聯。</p>
-				<p>僅因個人興趣使用 AI 製作，有任何問題請聯絡【admin@70877767.xyz】。</p>
+				<p>僅因個人興趣使用 AI 製作，有任何問題或建議請聯絡【admin@70877767.xyz】。</p>
 				<p>歌詞資源來自歌曲 Youtube 英文 CC 字幕節錄。</p>
-				<p><strong>製作契機：</strong>因為喜歡這首歌，想學會唱它，Youtube 的 CC 字幕又只會顯示當前歌曲進度的歌詞，在熟記歌詞之前，會完全不知道下一句歌詞是什麼，於是上網找了一圈，也沒找到同時有歌詞預覽及歌曲播放同步更新歌詞進度的網站，因此誕生本網頁。
-				</p>
-				<p><strong>靈感來源：</strong>而靈感來源其實就是照搬源自於音樂串流平台 Spotify 以及 Apple Music 的歌詞功能。
-				</p>
+				<p><strong>製作契機：</strong>因為喜歡這首歌，想學會唱它，Youtube 的 CC 字幕又只會顯示當前歌曲進度的歌詞，在熟記歌詞之前，會完全不知道下一句歌詞是什麼，於是上網找了一圈，也沒找到同時有歌詞預覽及歌曲播放同步更新歌詞進度的網站，因此誕生本網頁。</p>
+				<p><strong>靈感來源：</strong>其實就是照搬音樂串流平台 Spotify 以及 Apple Music 的歌詞功能。</p>
 				<p><strong>題外話：</strong>這首歌甚至 Spotify 也沒有歌詞，Apple Music 我就不知道了，沒用過。</p>
-				<p><strong>網頁上線時間：</strong>2026/9/15 16:20</p>
-            </div>
+				<p><strong>網頁完成時間：</strong>2026/10/10</p>
+				<!-- 在最後方加入這段 AGPL 宣告 -->
+                <div class="agpl-notice">
+                    <p>
+						本網頁開源且基於 <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank">AGPLv3 授權</a>。
+						<br>
+						歡迎至 <a href="https://github.com/Sugoi-ZY/Biboo-ROCK-IN-Karaoke-Player" target="_blank">GitHub</a> 獲取與修改原始碼。
+					</p>
+                </div>
+			</div>
         </div>
     </div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        const lyricsContainer = document.getElementById('lyricsContainer');
-        const statusText = document.getElementById('status');
-        const infoBtn = document.getElementById('infoBtn');
-        const infoModal = document.getElementById('infoModal');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-
-        infoBtn.onclick = () => infoModal.classList.add('show');
-        closeModalBtn.onclick = () => infoModal.classList.remove('show');
-        infoModal.onclick = (e) => {
-            if (e.target === infoModal) infoModal.classList.remove('show');
-        };
-
+        // --- 狀態與全域變數 ---
+        let sourceMode = 'youtube'; 
+        let vocalMode = 'vocal'; 
         let lyricsData = [];
         let currentActiveLineIndex = -1;
-        let ytPlayer;
+        let isSyncing = false; 
+        
+        // 快取常駐 DOM 元素
+        const lyricsContainer = document.getElementById('lyricsContainer');
+        const flacPlayBtn = document.getElementById('flacPlayBtn');
+        const statusEl = document.getElementById('status');
 
-        fetch('lyrics.vtt')
-            .then(res => res.text())
-            .then(text => {
-                const rawLines = [];
-                let currentLine = [];
-                let prevSung = "";
-
-                text.replace(/\r\n/g, '\n').split('\n\n').forEach(block => {
-                    const lines = block.split('\n');
-                    if (lines.length < 2 || !lines[0].includes('-->')) return;
-
-                    const [startStr, endStr] = lines[0].split(' --> ');
-                    const start = parseTime(startStr);
-                    const end = parseTime(endStr);
-                    
-                    let sungText = "";
-                    for (let i = 1; i < lines.length; i++) {
-                        const matches = [...lines[i].matchAll(/<c\.color6D4FED>(.*?)<\/c>/g)];
-                        matches.forEach(m => sungText += m[1]);
-                    }
-
-                    if (!sungText) return;
-                    if (!sungText.startsWith(prevSung)) {
-                        if (currentLine.length) rawLines.push(currentLine);
-                        currentLine = [];
-                        prevSung = "";
-                    }
-
-                    const newWord = sungText.substring(prevSung.length);
-                    if (newWord) currentLine.push({ text: newWord, start, end, _progress: -1 });
-                    prevSung = sungText;
-                });
-                if (currentLine.length) rawLines.push(currentLine);
-
-                lyricsData = rawLines.map(line => ({
-                    start: line[0].start,
-                    end: line[line.length - 1].end,
-                    words: line
-                }));
-                buildLyricsDOM();
-                checkReady();
-            });
-
-        function parseTime(t) {
-            const [h, m, s] = t.split(':');
-            return parseInt(h) * 3600 + parseInt(m) * 60 + parseFloat(s);
-        }
+        // --- YouTube 播放器設定 ---
+        let ytVocal, ytInst;
+        let ytReadyCount = 0;
 
         function onYouTubeIframeAPIReady() {
-            ytPlayer = new YT.Player('youtubePlayer', {
-                width: '100%',   
-                height: '100%',  
-                videoId: 'XSZ0iMP80QQ', 
-                playerVars: { 'playsinline': 1, 'rel': 0 },
-                events: {
-                    'onReady': checkReady,
-                    'onStateChange': onPlayerStateChange
-                }
+            const commonVars = { 'playsinline': 1, 'rel': 0, 'disablekb': 1 };
+            
+            ytVocal = new YT.Player('ytVocal', {
+                videoId: 'XSZ0iMP80QQ', playerVars: commonVars,
+                events: { 'onReady': onYtReady, 'onStateChange': onYtStateChange }
+            });
+            
+            ytInst = new YT.Player('ytInst', {
+                videoId: 'sDJEf412f8I', playerVars: commonVars,
+                events: { 'onReady': () => { ytInst.mute(); onYtReady(); }, 'onStateChange': onYtStateChange }
             });
         }
 
-        function checkReady() {
-            if (lyricsData.length > 0 && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
-                statusText.innerText = "準備完畢，請點擊播放";
+        function onYtReady() {
+            ytReadyCount++;
+            // 修正：只有在 YouTube 模式下才更新狀態提示
+            if (ytReadyCount === 2 && sourceMode === 'youtube') {
+                updateStatus("準備完畢，請點擊播放");
             }
         }
 
-        function onPlayerStateChange(e) {
-            const states = {
-                '-1': '尚未開始',
-                '0': '播放完畢，停止中',
-                '1': '播放中',
-                '2': '暫停中',
-                '3': '緩衝中...',
-                '5': '已就緒'
-            };
+        function onYtStateChange(e) {
+            if (sourceMode !== 'youtube') return;
+
+            const master = (vocalMode === 'vocal') ? ytVocal : ytInst;
+            const slave = (vocalMode === 'vocal') ? ytInst : ytVocal;
+
+            // 修正：只有當前主控音軌改變狀態時，才更新文字並連動副音軌
+            if (e.target === master) {
+                const states = { '-1': '準備就緒', '0': '播放完畢', '1': '播放中', '2': '暫停中', '3': '緩衝中...' };
+                if (states[e.data]) updateStatus(states[e.data]);
+
+                if (e.data === YT.PlayerState.PLAYING) {
+                    if (slave.getPlayerState() !== YT.PlayerState.PLAYING) slave.playVideo();
+                    startSyncLoop();
+                } else if (e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.BUFFERING || e.data === YT.PlayerState.ENDED) {
+                    slave.pauseVideo(); 
+                }
+            }
+        }
+
+        // --- FLAC 音訊設定 ---
+        const flacVocal = new Audio();
+        const flacInst = new Audio();
+        flacInst.muted = true; 
+
+        let flacLoaded = false;
+        let flacLoading = false;
+
+		async function loadFlacFiles() {
+            if (flacLoaded || flacLoading) return;
+            flacLoading = true;
+
+            try {
+                // 將這裡替換成你的 R2 公開存取網址
+                const r2BaseUrl = 'https://assets.70877767.xyz'; 
+                const vocalUrl = `${r2BaseUrl}/ROCK IN!.flac`;
+                const instUrl = `${r2BaseUrl}/ROCK IN!(Instrumental).flac`;
+                
+                let vocalBlob, instBlob;
+                let isCached = false;
+
+                // 1. 檢查瀏覽器是否支援快取 API，並尋找本機快取
+                if ('caches' in window) {
+                    updateStatus("🔍 正在檢查音源快取...");
+                    const cache = await caches.open('rock-in-audio-cache-v1');
+                    const cachedVocal = await cache.match(vocalUrl);
+                    const cachedInst = await cache.match(instUrl);
+
+                    // 只有當兩個檔案都在快取裡時，才算命中快取
+                    if (cachedVocal && cachedInst) {
+                        isCached = true;
+                        updateStatus("⚡ 發現本機快取，正在載入中...");
+                        vocalBlob = await cachedVocal.blob();
+                        instBlob = await cachedInst.blob();
+                    }
+                }
+
+                // 2. 如果不支援快取，或快取裡沒檔案，就執行網路下載
+                if (!isCached) {
+                    updateStatus("☁️ 首次聆聽，正在下載無損音源 (約 106MB)，請稍候...");
+                    
+                    const [vocalRes, instRes] = await Promise.all([
+                        fetch(vocalUrl),
+                        fetch(instUrl)
+                    ]);
+
+                    // 如果下載成功且支援快取，就偷偷存一份到本機，下次就不用再載
+                    if (vocalRes.ok && instRes.ok && 'caches' in window) {
+                        const cache = await caches.open('rock-in-audio-cache-v1');
+                        cache.put(vocalUrl, vocalRes.clone());
+                        cache.put(instUrl, instRes.clone());
+                    }
+
+                    vocalBlob = await vocalRes.blob();
+                    instBlob = await instRes.blob();
+                }
+
+                // 3. 轉成虛擬網址餵給播放器
+                flacVocal.src = URL.createObjectURL(vocalBlob);
+                flacInst.src = URL.createObjectURL(instBlob);
+
+                flacLoaded = true;
+                flacLoading = false;
+                
+                // 4. 根據來源給予對應的完成提示
+                if (isCached) {
+                    updateStatus("⚡ 快取載入完畢，請點擊封面播放");
+                } else {
+                    updateStatus("☁️ 下載並快取完畢，請點擊封面播放");
+                }
+
+            } catch (error) {
+                console.error("FLAC 載入失敗:", error);
+                updateStatus("❌ 音源下載失敗，請檢查網路狀態");
+                flacLoading = false;
+            }
+        }
+
+		const syncFlacPlay = () => {
+			if (!flacLoaded) return;
+			
+			// 修正：只有在 FLAC 模式下才更新 UI，避免切換音源時互相覆蓋狀態
+			if (sourceMode === 'flac') {
+				if (flacVocal.ended) {
+					updateStatus("播放完畢");
+					flacPlayBtn.style.opacity = 1;
+				} else {
+					updateStatus(flacVocal.paused ? "暫停中" : "播放中");
+					flacPlayBtn.style.opacity = flacVocal.paused ? 1 : 0;
+				}
+			}
+			
+			if (!flacVocal.paused && !flacVocal.ended) { 
+				// 修正：加入 catch 避免底層 play() 被中斷時拋出未捕捉的錯誤
+				flacInst.play().catch(e => console.warn("Audio play interrupted:", e)); 
+				startSyncLoop(); 
+			} else {
+				flacInst.pause();
+			}
+		};
+        
+        flacVocal.addEventListener('play', syncFlacPlay);
+        flacVocal.addEventListener('pause', syncFlacPlay);
+        flacVocal.addEventListener('ended', syncFlacPlay);
+        
+        function toggleFlacPlay() {
+			if (!flacLoaded) return; 
+			if (flacVocal.paused) { 
+			// 關鍵修正：若已經播放完畢，強制手動將兩者進度歸零
+				if (flacVocal.ended) {
+					flacVocal.currentTime = 0;
+					flacInst.currentTime = 0;
+				}
+				flacVocal.play(); 
+			} 
+			else { flacVocal.pause(); }
+		}
+
+        // --- UI 控制邏輯 ---
+        function setSource(mode) {
+            sourceMode = mode;
+            document.getElementById('btnYt').classList.toggle('active', mode === 'youtube');
+            document.getElementById('btnFlac').classList.toggle('active', mode === 'flac');
             
-            if (states[e.data]) {
-                statusText.innerText = states[e.data];
+            if (mode === 'youtube') {
+                document.getElementById('youtubeWrapper').style.display = 'block';
+                document.getElementById('flacWrapper').style.display = 'none';
+                if (flacLoaded) { flacVocal.pause(); flacInst.pause(); } 
+                if (ytReadyCount === 2) updateStatus("已切換回 YouTube 模式，請點擊播放");
+            } else {
+                document.getElementById('youtubeWrapper').style.display = 'none';
+                document.getElementById('flacWrapper').style.display = 'flex';
+                if (ytReadyCount === 2) { ytVocal.pauseVideo(); ytInst.pauseVideo(); }
+                
+                if (!flacLoaded) {
+                    loadFlacFiles();
+                } else {
+                    updateStatus("FLAC 準備完畢，請點擊封面播放");
+                }
             }
+            setVocal(vocalMode);
+            syncLyrics(); // 暫停時切換音源強制同步一次歌詞
+        }
 
-            if (e.data === YT.PlayerState.PLAYING) {
-                requestAnimationFrame(syncLyrics);
+        function setVocal(mode) {
+            vocalMode = mode;
+            document.getElementById('btnVocal').classList.toggle('active', mode === 'vocal');
+            document.getElementById('btnInst').classList.toggle('active', mode === 'inst');
+
+            if (sourceMode === 'youtube') {
+                const vocalUI = document.getElementById('ytVocalContainer');
+                const instUI = document.getElementById('ytInstContainer');
+                if (mode === 'vocal') {
+                    if (ytReadyCount === 2) { ytVocal.unMute(); ytInst.mute(); }
+                    vocalUI.style.opacity = 1; vocalUI.style.pointerEvents = 'auto';
+                    instUI.style.opacity = 0; instUI.style.pointerEvents = 'none';
+                } else {
+                    if (ytReadyCount === 2) { ytInst.unMute(); ytVocal.mute(); }
+                    vocalUI.style.opacity = 0; vocalUI.style.pointerEvents = 'none';
+                    instUI.style.opacity = 1; instUI.style.pointerEvents = 'auto';
+                }
+            } else {
+                if (mode === 'vocal') { flacVocal.muted = false; flacInst.muted = true; } 
+                else { flacInst.muted = false; flacVocal.muted = true; }
             }
         }
+
+        function updateStatus(text) { statusEl.innerText = text; }
+
+        // --- VTT 解析與渲染 ---
+		fetch('lyrics.vtt')
+			.then(res => {
+				if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+				return res.text();
+			})
+			.then(text => {
+				const blocks = text.replace(/\r\n/g, '\n').trim().split(/\n\n+/);
+				const parseTime = t => {
+					const p = t.split(':');
+					return p.length === 3 ? parseInt(p[0]) * 3600 + parseInt(p[1]) * 60 + parseFloat(p[2]) : parseInt(p[0]) * 60 + parseFloat(p[1]);
+				};
+		
+				blocks.forEach(block => {
+					const lines = block.split('\n');
+					if (lines.length < 2 || !lines[0].includes('-->')) return;
+					
+					const start = parseTime(lines[0].split(' --> ')[0]);
+					const end = parseTime(lines[0].split(' --> ')[1]);
+					const words = [];
+					
+					[...lines.slice(1).join('').matchAll(/<([\d:.]+)>(.*?)(?=<|$)/g)].forEach((m, i, arr) => {
+						if (m[2].trim() || m[2].includes(' ')) {
+							words.push({ text: m[2], start: parseTime(m[1]), end: i < arr.length - 1 ? parseTime(arr[i+1][1]) : end, _progress: -1 });
+						}
+					});
+					if (words.length > 0) lyricsData.push({ start, end, words });
+				});
+				buildLyricsDOM();
+			})
+			.catch(err => {
+				console.error("歌詞載入失敗:", err);
+				updateStatus("⚠️ 歌詞檔案載入失敗");
+			});
 
         function buildLyricsDOM() {
-            lyricsData.forEach((line, lineIndex) => {
+            lyricsData.forEach((line, i) => {
                 const lineEl = document.createElement('div');
-                lineEl.className = 'line';
-                lineEl.id = `line-${lineIndex}`;
-                
+                lineEl.className = 'line'; 
+                lineEl.id = `line-${i}`;
+                line.el = lineEl; // 效能優化：快取 DOM 節點
+
                 lineEl.onclick = () => {
-                    ytPlayer.seekTo(line.start, true);
-                    syncLyrics(); 
+                    if (sourceMode === 'youtube' && ytReadyCount === 2) {
+                        ytVocal.seekTo(line.start, true); ytInst.seekTo(line.start, true);
+                        ytVocal.playVideo(); ytInst.playVideo();
+                        startSyncLoop();
+                    } else if (sourceMode === 'flac') {
+                        if (!flacLoaded) {
+                            updateStatus("請等待 FLAC 完整載入後再操作");
+                            return; 
+                        }
+                        flacVocal.currentTime = line.start; flacInst.currentTime = line.start;
+                        flacVocal.play();
+                        startSyncLoop();
+                    }
                 };
 
-                line.words.forEach((word, wordIndex) => {
+                line.words.forEach((w, j) => {
                     const wordEl = document.createElement('span');
-                    wordEl.className = 'word';
-                    wordEl.id = `word-${lineIndex}-${wordIndex}`;
-                    wordEl.textContent = word.text;
+                    wordEl.className = 'word'; 
+                    wordEl.id = `word-${i}-${j}`;
+                    wordEl.textContent = w.text; 
                     lineEl.appendChild(wordEl);
+                    w.el = wordEl; // 效能優化：快取單字 DOM 節點
                 });
                 lyricsContainer.appendChild(lineEl);
             });
         }
 
-        function syncLyrics() {
-            if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
-            const time = ytPlayer.getCurrentTime();
+        // --- 同步監視器與動畫核心 ---
+        function startSyncLoop() {
+            if (!isSyncing) { isSyncing = true; requestAnimationFrame(syncLyrics); }
+        }
 
-            let newActiveIndex = lyricsData.findIndex(line => time < line.start) - 1;
-            if (newActiveIndex < -1) newActiveIndex = lyricsData.length - 1; 
+		function syncLyrics() {
+			let time = 0;
+			let isPlaying = false;
+		
+			if (sourceMode === 'youtube') {
+				if (ytReadyCount === 2) {
+					const master = (vocalMode === 'vocal') ? ytVocal : ytInst;
+					const slave = (vocalMode === 'vocal') ? ytInst : ytVocal;
+					time = master.getCurrentTime() || 0;
+					isPlaying = (master.getPlayerState() === YT.PlayerState.PLAYING);
+		
+					// YouTube iframe 同步保留 0.1 誤差 (因為 iframe 較容易飄移)
+					if (isPlaying && Math.abs(time - (slave.getCurrentTime() || 0)) > 0.1) {
+						slave.seekTo(time, true);
+					}
+				}
+			} else {
+				if (flacLoaded) {
+					const master = (vocalMode === 'vocal') ? flacVocal : flacInst;
+					const slave = (vocalMode === 'vocal') ? flacInst : flacVocal;
+					time = master.currentTime;
+					isPlaying = !master.paused;
+		
+					// 效能優化：放寬 HTML5 Audio 容錯值至 0.25 秒，避免頻繁打斷音訊緩衝造成卡頓
+					if (isPlaying && Math.abs(time - slave.currentTime) > 0.25) {
+						slave.currentTime = time;
+					}
+				}
+			}
+		
+			const nextIndex = lyricsData.findIndex(line => time < line.start);
+			let newActiveIndex = (nextIndex === -1) ? lyricsData.length - 1 : nextIndex - 1;
+		
+			// 1. 狀態切換：只負責處理「焦點 (active) 行」的樣式與捲動
+			if (newActiveIndex !== currentActiveLineIndex) {
+				if (currentActiveLineIndex >= 0 && lyricsData[currentActiveLineIndex]) {
+					lyricsData[currentActiveLineIndex].el.classList.remove('active');
+				}
+				
+				if (newActiveIndex >= 0 && lyricsData[newActiveIndex]) {
+					const newLine = lyricsData[newActiveIndex].el;
+					newLine.classList.add('active');
+					newLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				} else {
+					lyricsContainer.scrollTo({ top: 0, behavior: 'smooth' });
+				}
+		
+				currentActiveLineIndex = newActiveIndex;
+			}
+		
+			// 2. 每一幀的運算：支援多行重疊（拉長音時，其他歌詞可繼續出現並運算）
+			lyricsData.forEach((line) => {
+				// 判斷這句歌詞是否正在播放區間內 (包含被其他行插斷的拉長音)
+				const isPlayingLine = time >= line.start && time <= line.end;
 
-            if (newActiveIndex !== currentActiveLineIndex) {
-                if (currentActiveLineIndex >= 0) {
-                    document.getElementById(`line-${currentActiveLineIndex}`)?.classList.remove('active');
-                }
-                
-                if (newActiveIndex >= 0) {
-                    const newLine = document.getElementById(`line-${newActiveIndex}`);
-                    if (newLine) {
-                        newLine.classList.add('active');
-                        newLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                } else {
-                    lyricsContainer.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-                
-                currentActiveLineIndex = newActiveIndex;
-            }
-
-            lyricsData.forEach((line, lineIndex) => {
-                line.words.forEach((word, wordIndex) => {
-                    let progress = time >= word.end ? 100 : time < word.start ? 0 : ((time - word.start) / (word.end - word.start)) * 100;
-                    if (word._progress !== progress) {
-                        word._progress = progress;
-                        document.getElementById(`word-${lineIndex}-${wordIndex}`).style.setProperty('--progress', `${progress}%`);
-                    }
-                });
-            });
-
-            if (ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
-                requestAnimationFrame(syncLyrics);
-            }
+				if (isPlayingLine) {
+					// 正在區間內的行：持續計算每個單字的精確進度
+					line.words.forEach(word => {
+						const duration = word.end - word.start;
+						let progress = time >= word.end ? 100 : time < word.start ? 0 : (duration > 0 ? ((time - word.start) / duration) * 100 : 100);
+						
+						if (word._progress !== progress) {
+							word._progress = progress;
+							word.el.style.setProperty('--progress', `${progress}%`);
+						}
+					});
+				} else {
+					// 不在區間內的行：依據時間判斷是過去(100%)還是未來(0%)
+					const targetProgress = time > line.end ? 100 : 0;
+					
+					// 保留效能優化：進度不一樣才去更新 DOM，避免每一幀都洗畫面
+					line.words.forEach(w => { 
+						if (w._progress !== targetProgress) { 
+							w._progress = targetProgress; 
+							w.el.style.setProperty('--progress', `${targetProgress}%`); 
+						}
+					});
+				}
+			});
+		
+			if (isPlaying) {
+				requestAnimationFrame(syncLyrics);
+			} else {
+				isSyncing = false; 
+			}
         }
     </script>
 </body>

@@ -1,4 +1,4 @@
-# ⚠️v2 is coming soon. / 第二版即將到來。
+# ✔️ v2 Released. / 第二版已發行。 - 2026/10/10
 
 ## Running the File Locally
 Due to YouTube Player API restrictions (CORS / `file://` protocol limitations), opening the HTML file directly will not work.\
